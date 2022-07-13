@@ -14,6 +14,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -230,6 +231,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public Object get(@NotNull String path, @Nullable Object def) {
         Validate.notNull(path, "Path cannot be null");
@@ -249,7 +251,11 @@ public class MemorySection implements ConfigurationSection {
         int i1 = -1, i2;
         ConfigurationSection section = this;
         while ((i1 = path.indexOf(separator, i2 = i1 + 1)) != -1) {
-            section = section.getConfigurationSection(path.substring(i2, i1));
+            final String currentPath = path.substring(i2, i1);
+            if (!section.contains(currentPath, true)) {
+                return def;
+            }
+            section = section.getConfigurationSection(currentPath);
             if (section == null) {
                 return def;
             }
@@ -321,6 +327,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public String getString(@NotNull String path, @Nullable String def) {
         Object val = get(path, def);
@@ -414,6 +421,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public List<?> getList(@NotNull String path, @Nullable List<?> def) {
         Object val = get(path, def);
@@ -702,6 +710,7 @@ public class MemorySection implements ConfigurationSection {
         return getObject(path, clazz, (def != null && clazz.isInstance(def)) ? clazz.cast(def) : null);
     }
 
+    @Contract("_, _, !null -> !null")
     @Nullable
     @Override
     public <T extends Object> T getObject(@NotNull String path, @NotNull Class<T> clazz, @Nullable T def) {
@@ -716,6 +725,7 @@ public class MemorySection implements ConfigurationSection {
         return getObject(path, clazz);
     }
 
+    @Contract("_, _, !null -> !null")
     @Nullable
     @Override
     public <T extends ConfigurationSerializable> T getSerializable(@NotNull String path, @NotNull Class<T> clazz, @Nullable T def) {
@@ -729,6 +739,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public Vector getVector(@NotNull String path, @Nullable Vector def) {
         return getSerializable(path, Vector.class, def);
@@ -746,6 +757,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public OfflinePlayer getOfflinePlayer(@NotNull String path, @Nullable OfflinePlayer def) {
         return getSerializable(path, OfflinePlayer.class, def);
@@ -763,6 +775,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public ItemStack getItemStack(@NotNull String path, @Nullable ItemStack def) {
         return getSerializable(path, ItemStack.class, def);
@@ -780,6 +793,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public Color getColor(@NotNull String path, @Nullable Color def) {
         return getSerializable(path, Color.class, def);
@@ -797,6 +811,7 @@ public class MemorySection implements ConfigurationSection {
     }
 
     @Override
+    @Contract("_, !null -> !null")
     @Nullable
     public Location getLocation(@NotNull String path, @Nullable Location def) {
         return getSerializable(path, Location.class, def);

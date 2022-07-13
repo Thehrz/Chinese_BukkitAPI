@@ -5,40 +5,43 @@ import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Represents a captured state of a lectern.
+ * 代表讲台.
  */
 public interface Lectern extends TileState, BlockInventoryHolder {
 
     /**
-     * Get the current lectern page.
+     * 获取讲台上书翻到了哪一页.
+     * <p>
+     * 原文:Get the current lectern page.
      *
-     * @return current page
+     * @return 书的页码
      */
     int getPage();
 
     /**
-     * Set the current lectern page.
+     * 把讲台上的书翻到哪一页.
+     * 如果给定的页数大于讲台上书的页数, 则相关行为是未定义的.
+     * <p>
+     * 原文:Set the current lectern page.
      *
      * If the page is greater than the number of pages of the book currently in
      * the inventory, then behavior is undefined.
      *
-     * @param page new page
+     * @param page 书的页码
      */
     void setPage(int page);
 
     /**
+     * @return 物品栏
      * @see Container#getInventory()
-     *
-     * @return inventory
      */
     @NotNull
     @Override
     Inventory getInventory();
 
     /**
+     * @return 物品栏快照
      * @see Container#getSnapshotInventory()
-     *
-     * @return snapshot inventory
      */
     @NotNull
     Inventory getSnapshotInventory();

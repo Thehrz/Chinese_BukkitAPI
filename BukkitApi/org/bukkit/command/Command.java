@@ -19,7 +19,6 @@ import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 /**
  * 代表一个命令，在用户输入时执行各种任务.
  */
@@ -154,7 +153,6 @@ public abstract class Command {
      */
     public boolean setName(@NotNull String name) {
         if (!isRegistered()) {
-            this.timings = new org.spigotmc.CustomTimingsHandler("** Command: " + name); // Spigot
             this.name = (name == null) ? "" : name;
             return true;
         }
@@ -277,6 +275,7 @@ public abstract class Command {
         }
         this.nextLabel = name;
         if (!isRegistered()) {
+            this.timings = new org.spigotmc.CustomTimingsHandler("** Command: " + name); // Spigot
             this.label = name;
             return true;
         }
@@ -388,12 +387,11 @@ public abstract class Command {
         return usageMessage;
     }
 
-    // TODO:待测试
     /**
      * 设置这个命令的别名.
-     * 若没在{@link PluginDescriptionFile#getCommands()}的 <code>aliases</code> 节点定义(就是没在plugin.yml定义)将没有效果，与此等效.
+     * 如果别名未在 plugin.yml 中 commands 节点下的 aliases 节点定义, 则操作无效.
      * <p>
-     * 原文：Sets the list of aliases to request on registration for this command.
+     * 原文:Sets the list of aliases to request on registration for this command.
      * This is not effective outside of defining aliases in the {@link
      * PluginDescriptionFile#getCommands()} (under the
      * `<code>aliases</code>' node) is equivalent to this method.

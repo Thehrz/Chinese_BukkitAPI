@@ -1,11 +1,12 @@
 package org.bukkit.potion;
 
 import org.bukkit.Color;
+import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
 
 public class PotionEffectTypeWrapper extends PotionEffectType {
-    protected PotionEffectTypeWrapper(int id) {
-        super(id);
+    protected PotionEffectTypeWrapper(int id, @NotNull String name) {
+        super(id, NamespacedKey.minecraft(name));
     }
 
     @Override
@@ -20,9 +21,11 @@ public class PotionEffectTypeWrapper extends PotionEffectType {
     }
 
     /**
-     * Get the potion type bound to this wrapper.
+     * 获取绑定到此包装类的药水效果类型.
+     * <p>
+     * 原文:Get the potion type bound to this wrapper.
      *
-     * @return The potion effect type
+     * @return 药水效果类型
      */
     @NotNull
     public PotionEffectType getType() {

@@ -37,15 +37,6 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
         return spawnReason;
     }
 
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
-
     /**
      * 生成原因的枚举类.
      */
@@ -181,6 +172,18 @@ public class CreatureSpawnEvent extends EntitySpawnEvent {
          * When a bee is released from a beehive/bee nest
          */
         BEEHIVE,
+        /**
+         * When a piglin is converted to a zombified piglib.
+         */
+        PIGLIN_ZOMBIFIED,
+        /**
+         * When an entity is shaking in Powder Snow and a new entity spawns.
+         */
+        FROZEN,
+        /**
+         * When a creature is spawned by the "/summon" command
+         */
+        COMMAND,
         /**
          * 当生物被插件生成时
          */

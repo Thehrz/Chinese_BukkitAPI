@@ -4,7 +4,7 @@ import org.bukkit.inventory.FurnaceInventory;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 代表一个熔炉(快照).
+ * 代表熔炉.
  * <p>
  * 译注:本页出现的时间均以tick为单位, tick(刻)是服务器内部表示时间的方式, 理想状态下1 tick为50ms.
  */
@@ -59,7 +59,7 @@ public interface Furnace extends Container {
     public void setCookTime(short cookTime);
 
     /**
-     * 设置烧炼总时间.
+     * 获取烧炼总时间.
      * 本时间表示烧炼物品所需的时间.
      * <p>
      * 原文:Get cook time total.

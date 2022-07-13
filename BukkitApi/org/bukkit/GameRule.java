@@ -151,6 +151,11 @@ public final class GameRule<T> {
     public static final GameRule<Boolean> FIRE_DAMAGE = new GameRule<>("fireDamage", Boolean.class);
 
     /**
+     * 玩家是否承受冰冻伤害.
+     */
+    public static final GameRule<Boolean> FREEZE_DAMAGE = new GameRule<>("freezeDamage", Boolean.class);
+
+    /**
      * <a href="https://minecraft-zh.gamepedia.com/%E7%81%BE%E5%8E%84%E5%B7%A1%E9%80%BB%E9%98%9F" target="_blank">灾厄巡逻队</a>是否自然生成.
      */
     public static final GameRule<Boolean> DO_PATROL_SPAWNING = new GameRule<>("doPatrolSpawning", Boolean.class);
@@ -161,12 +166,12 @@ public final class GameRule<T> {
     public static final GameRule<Boolean> DO_TRADER_SPAWNING = new GameRule<>("doTraderSpawning", Boolean.class);
 
     /**
-     * Whether mobs should cease being angry at a player once they die.
+     * 当被激怒的中立生物的目标玩家死亡时, 此生物是否恢复中立状态.
      */
     public static final GameRule<Boolean> FORGIVE_DEAD_PLAYERS = new GameRule<>("forgiveDeadPlayers", Boolean.class);
 
     /**
-     * Whether mobs will target all player entities once angered.
+     * 当中立生物被激怒时, 是否攻击附近所有玩家 (而不仅仅是激怒此生物的玩家).
      */
     public static final GameRule<Boolean> UNIVERSAL_ANGER = new GameRule<>("universalAnger", Boolean.class);
 
@@ -195,6 +200,11 @@ public final class GameRule<T> {
      * 该值是在同一连锁同一tick时可激活的最大命令方块数量.
      */
     public static final GameRule<Integer> MAX_COMMAND_CHAIN_LENGTH = new GameRule<>("maxCommandChainLength", Integer.class);
+
+    /**
+     * 服务器跳过夜晚所需的入睡玩家的占比.
+     */
+    public static final GameRule<Integer> PLAYERS_SLEEPING_PERCENTAGE = new GameRule<>("playersSleepingPercentage", Integer.class);
 
     // All GameRules instantiated above this for organizational purposes
     private final String name;

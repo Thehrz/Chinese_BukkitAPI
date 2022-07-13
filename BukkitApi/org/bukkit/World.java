@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Predicate;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -14,14 +13,15 @@ import org.bukkit.boss.DragonBattle;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LightningStrike;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.metadata.Metadatable;
@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 代表一个世界,包含了{@link Entity 实体},{@link Chunk 区块},{@link Block 方块}
  */
-public interface World extends PluginMessageRecipient, Metadatable {
+public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable {
 
     /**
      * 获取坐标所指的{@link Block 方块}.
@@ -49,7 +49,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param y 方块的Y坐标
      * @param z 方块的Z坐标
      * @return 在指定坐标的方块
-     * @see #getBlockTypeIdAt(int, int, int) 返回这个坐标所在方块的ID
      */
     @NotNull
     public Block getBlockAt(int x, int y, int z);
@@ -61,25 +60,9 @@ public interface World extends PluginMessageRecipient, Metadatable {
      *
      * @param location 要获取的方块的位置
      * @return 在指定位置的方块
-     * @see #getBlockTypeIdAt(org.bukkit.Location) 返回这个位置({@link Location})所在方块的ID
      */
     @NotNull
     public Block getBlockAt(@NotNull Location location);
-
-    /**
-     * 获取指定坐标的方块ID.
-     * <p>
-     * 原文：Gets the block type ID at the given coordinates
-     *
-     * @param x 方块的X坐标
-     * @param y 方块的Y坐标
-     * @param z 方块的Z坐标
-     * @return 指定坐标所在的方块的ID
-     * @see #getBlockAt(int, int, int) 返回这个坐标所在的方块
-     * @deprecated 不安全的参数
-     */
-    @Deprecated
-    public int getBlockTypeIdAt(int x, int y, int z);
 
     /**
      * 获取指定坐标最高处不是空气且不可逾越的方块的y坐标.
@@ -226,15 +209,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public boolean isChunkLoaded(@NotNull Chunk chunk);
 
     /**
-     * Checks if the {@link Chunk} at the specified coordinates is generated
-     *
-     * @param x X-coordinate of the chunk
-     * @param z Z-coordinate of the chunk
-     * @return true if the chunk is generated, otherwise false
-     */
-    public boolean isChunkGenerated(int x, int z);
-
-    /**
      * 获取一个所有被加载的{@link Chunk 区块}的数组.
      * <p>
      * 原文：
@@ -273,6 +247,17 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return 如果区块已经被加载则返回true，否则返回false
      */
     public boolean isChunkLoaded(int x, int z);
+
+    /**
+     * 检查指定坐标处的{@link Chunk 区块}是否已生成.
+     * <p>
+     * 原文:Checks if the {@link Chunk} at the specified coordinates is generated
+     *
+     * @param x 区块x坐标
+     * @param z 区块z坐标
+     * @return 区块已生成则返回true, 反之为false
+     */
+    public boolean isChunkGenerated(int x, int z);
 
     /**
      * 检查指定坐标的{@link Chunk 区块}是否被加载且被一个或更多的玩家使用.
@@ -386,14 +371,11 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public boolean unloadChunk(int x, int z, boolean save);
 
     /**
-     * 安全地将卸载指定坐标的{@link Chunk 区块}列入队列.
+     * 安全地将卸载指定坐标的{@link Chunk 区块}请求列入队列.
      * <p>
      * 原文：
      * Safely queues the {@link Chunk} at the specified coordinates for
      * unloading
-     * <p>
-     * This method is analogous to {@link #unloadChunkRequest(int, int,
-     * boolean)} where safe is true
      *
      * @param x 区块的x坐标
      * @param z 区块的z坐标
@@ -568,10 +550,21 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public Item dropItem(@NotNull Location location, @NotNull ItemStack item);
 
     /**
+     * Drops an item at the specified {@link Location}
+     * Note that functions will run before the entity is spawned
+     *
+     * @param location Location to drop the item
+     * @param item ItemStack to drop
+     * @param function the function to be run before the entity is spawned.
+     * @return ItemDrop entity created as a result of this method
+     */
+    @NotNull
+    public Item dropItem(@NotNull Location location, @NotNull ItemStack item, @Nullable Consumer<Item> function);
+
+    /**
      * 在指定的{@link Location 位置}丢出一个随机偏移的物品.
      * <p>
-     * 原文：
-     * Drops an item at the specified {@link Location} with a random offset
+     * 原文:Drops an item at the specified {@link Location} with a random offset
      *
      * @param location 丢出物品的位置
      * @param item 丢出的物品堆
@@ -579,6 +572,18 @@ public interface World extends PluginMessageRecipient, Metadatable {
      */
     @NotNull
     public Item dropItemNaturally(@NotNull Location location, @NotNull ItemStack item);
+
+    /**
+     * Drops an item at the specified {@link Location} with a random offset
+     * Note that functions will run before the entity is spawned
+     *
+     * @param location Location to drop the item
+     * @param item ItemStack to drop
+     * @param function the function to be run before the entity is spawned.
+     * @return ItemDrop entity created as a result of this method
+     */
+    @NotNull
+    public Item dropItemNaturally(@NotNull Location location, @NotNull ItemStack item, @Nullable Consumer<Item> function);
 
     /**
      * 在指定的{@link Location 位置}创建一个{@link Arrow 箭}的实体.
@@ -632,21 +637,10 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param type 创建的树的类型
      * @param delegate 这个方法会返回一个用于调用每个方块的改变的类作为结果
      * @return 如果树被成功生成则返回true，否则返回false
+     * @see #generateTree(org.bukkit.Location, java.util.Random, org.bukkit.TreeType, org.bukkit.util.Consumer)
+     * @deprecated this method does not handle tile entities (bee nests)
      */
     public boolean generateTree(@NotNull Location loc, @NotNull TreeType type, @NotNull BlockChangeDelegate delegate);
-
-    /**
-     * 在指定的{@link Location 位置}创建一个实体.
-     * <p>
-     * 原文：
-     * Creates a entity at the given {@link Location}
-     *
-     * @param loc 生成实体的位置
-     * @param type 生成的实体
-     * @return 生成成功则返回此方法创建的实体，否则返回null
-     */
-    @NotNull
-    public Entity spawnEntity(@NotNull Location loc, @NotNull EntityType type);
 
     /**
      * 在指定的{@link Location 位置}劈下闪电.
@@ -820,81 +814,100 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public Collection<Entity> getNearbyEntities(@NotNull BoundingBox boundingBox, @Nullable Predicate<Entity> filter);
 
     /**
+     * 执行检查实体碰撞的射线跟踪.
+     * <p>
+     * 这可能不考虑当前已经卸载的区块中的实体. 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for entity collisions.
      * <p>
      * This may not consider entities in currently unloaded chunks. Some
      * implementations may impose artificial restrictions on the maximum
      * distance.
      *
-     * @param start the start position
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @return the closest ray trace hit result, or <code>null</code> if there
-     *     is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      * @see #rayTraceEntities(Location, Vector, double, double, Predicate)
      */
     @Nullable
     public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance);
 
     /**
+     * 执行检查实体碰撞的射线跟踪.
+     * <p>
+     * 这可能不考虑当前已经卸载的区块中的实体. 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for entity collisions.
      * <p>
      * This may not consider entities in currently unloaded chunks. Some
      * implementations may impose artificial restrictions on the maximum
      * distance.
      *
-     * @param start the start position
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param raySize entity bounding boxes will be uniformly expanded (or
-     *     shrinked) by this value before doing collision checks
-     * @return the closest ray trace hit result, or <code>null</code> if there
-     *     is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @param raySize 在进行碰撞检查之前, 实体边界框将按此值均匀地放大(或缩小)
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      * @see #rayTraceEntities(Location, Vector, double, double, Predicate)
      */
     @Nullable
     public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, double raySize);
 
     /**
+     * 执行检查实体碰撞的射线跟踪.
+     * <p>
+     * 这可能不考虑当前已经卸载的区块中的实体. 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for entity collisions.
      * <p>
      * This may not consider entities in currently unloaded chunks. Some
      * implementations may impose artificial restrictions on the maximum
      * distance.
      *
-     * @param start the start position
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param filter only entities that fulfill this predicate are considered,
-     *     or <code>null</code> to consider all entities
-     * @return the closest ray trace hit result, or <code>null</code> if there
-     *     is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @param filter 只考虑满足此过滤器的实体, 或者 <code>null</code> 考虑所有实体
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      * @see #rayTraceEntities(Location, Vector, double, double, Predicate)
      */
     @Nullable
     public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, @Nullable Predicate<Entity> filter);
 
     /**
+     * 执行检查实体碰撞的射线跟踪.
+     * <p>
+     * 这可能不考虑当前已经卸载的区块中的实体. 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for entity collisions.
      * <p>
      * This may not consider entities in currently unloaded chunks. Some
      * implementations may impose artificial restrictions on the maximum
      * distance.
      *
-     * @param start the start position
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param raySize entity bounding boxes will be uniformly expanded (or
-     *     shrinked) by this value before doing collision checks
-     * @param filter only entities that fulfill this predicate are considered,
-     *     or <code>null</code> to consider all entities
-     * @return the closest ray trace hit result, or <code>null</code> if there
-     *     is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @param raySize 在进行碰撞检查之前, 实体边界框将按此值均匀地放大(或缩小)
+     * @param filter 只考虑满足此过滤器的实体, 或者 <code>null</code> 考虑所有实体
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      */
     @Nullable
     public RayTraceResult rayTraceEntities(@NotNull Location start, @NotNull Vector direction, double maxDistance, double raySize, @Nullable Predicate<Entity> filter);
 
     /**
+     * 执行射线跟踪, 使用方块的精确碰撞形状来检查方块碰撞.
+     * <p>
+     * 这将考虑与可穿过的方块的碰撞, 但忽略流体.
+     * <p>
+     * 这可能会导致区块加载! 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for block collisions using the blocks'
      * precise collision shapes.
      * <p>
@@ -904,16 +917,23 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * This may cause loading of chunks! Some implementations may impose
      * artificial restrictions on the maximum distance.
      *
-     * @param start the start location
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @return the ray trace hit result, or <code>null</code> if there is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      * @see #rayTraceBlocks(Location, Vector, double, FluidCollisionMode, boolean)
      */
     @Nullable
     public RayTraceResult rayTraceBlocks(@NotNull Location start, @NotNull Vector direction, double maxDistance);
 
     /**
+     * 执行射线跟踪, 使用方块的精确碰撞形状来检查方块碰撞.
+     * <p>
+     * 这将考虑与可穿过的方块的碰撞.
+     * <p>
+     * 这可能会导致区块加载! 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for block collisions using the blocks'
      * precise collision shapes.
      * <p>
@@ -922,17 +942,26 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * This may cause loading of chunks! Some implementations may impose
      * artificial restrictions on the maximum distance.
      *
-     * @param start the start location
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param fluidCollisionMode the fluid collision mode
-     * @return the ray trace hit result, or <code>null</code> if there is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @param fluidCollisionMode 流体碰撞模式
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      * @see #rayTraceBlocks(Location, Vector, double, FluidCollisionMode, boolean)
      */
     @Nullable
     public RayTraceResult rayTraceBlocks(@NotNull Location start, @NotNull Vector direction, double maxDistance, @NotNull FluidCollisionMode fluidCollisionMode);
 
     /**
+     * 执行射线跟踪, 使用方块的精确碰撞形状来检查方块碰撞.
+     * <p>
+     * 如果忽略与可穿过的方块的碰撞, 则无论流体碰撞模式如何, 也会忽略流体碰撞.
+     * <p>
+     * 只有当射线从传送门方块内部开始时, 其才被认为是可穿过的. 除此之外, 即使忽略了与可穿过方块的碰撞, 也将考虑与传送门方块的碰撞.
+     * <p>
+     * 这可能会导致区块加载! 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for block collisions using the blocks'
      * precise collision shapes.
      * <p>
@@ -946,18 +975,28 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * This may cause loading of chunks! Some implementations may impose
      * artificial restrictions on the maximum distance.
      *
-     * @param start the start location
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param fluidCollisionMode the fluid collision mode
-     * @param ignorePassableBlocks whether to ignore passable but collidable
-     *     blocks (ex. tall grass, signs, fluids, ..)
-     * @return the ray trace hit result, or <code>null</code> if there is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @param fluidCollisionMode 流体碰撞模式
+     * @param ignorePassableBlocks 是否忽略可穿过但可碰撞的方块(例如高草丛、告示牌、液体等)
+     * @return 最近的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      */
     @Nullable
     public RayTraceResult rayTraceBlocks(@NotNull Location start, @NotNull Vector direction, double maxDistance, @NotNull FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks);
 
     /**
+     * 执行射线跟踪, 检查方块碰撞和实体碰撞.
+     * <p>
+     * 方块碰撞使用方块的精确碰撞形状. <code>raySize</code> 参数仅用于实体的碰撞检查.
+     * <p>
+     * 如果忽略与可穿过方块的碰撞, 则无论流体碰撞模式如何, 也会忽略流体碰撞.
+     * <p>
+     * 只有当射线从传送门方块内部开始时, 其才被认为是可穿过的. 除此之外, 即使忽略了与可穿过方块的碰撞, 也将考虑与传送门方块的碰撞.
+     * <p>
+     * 这可能会导致区块加载! 一些实现可能会对最大距离施加人为限制.
+     * <p>
+     * 原文:
      * Performs a ray trace that checks for both block and entity collisions.
      * <p>
      * Block collisions use the blocks' precise collision shapes. The
@@ -974,43 +1013,17 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * This may cause loading of chunks! Some implementations may impose
      * artificial restrictions on the maximum distance.
      *
-     * @param start the start location
-     * @param direction the ray direction
-     * @param maxDistance the maximum distance
-     * @param fluidCollisionMode the fluid collision mode
-     * @param ignorePassableBlocks whether to ignore passable but collidable
-     *     blocks (ex. tall grass, signs, fluids, ..)
-     * @param raySize entity bounding boxes will be uniformly expanded (or
-     *     shrinked) by this value before doing collision checks
-     * @param filter only entities that fulfill this predicate are considered,
-     *     or <code>null</code> to consider all entities
-     * @return the closest ray trace hit result with either a block or an
-     *     entity, or <code>null</code> if there is no hit
+     * @param start 起始位置
+     * @param direction 射线方向
+     * @param maxDistance 最大距离
+     * @param fluidCollisionMode 流体碰撞模式
+     * @param ignorePassableBlocks 是否忽略可穿过但可碰撞的方块(例如高草丛、告示牌、液体等)
+     * @param raySize 在进行碰撞检查之前, 实体边界框将按此值均匀地放大(或缩小)
+     * @param filter 只考虑满足此过滤器的实体, 或者 <code>null</code> 考虑所有实体
+     * @return 最近的方块或实体的射线跟踪命中结果, 如果没有命中, 则为<code>null</code>
      */
     @Nullable
     public RayTraceResult rayTrace(@NotNull Location start, @NotNull Vector direction, double maxDistance, @NotNull FluidCollisionMode fluidCollisionMode, boolean ignorePassableBlocks, double raySize, @Nullable Predicate<Entity> filter);
-
-    /**
-     * 获取世界的唯一名称.
-     * <p>
-     * 原文：
-     * Gets the unique name of this world
-     *
-     * @return 世界的名称
-     */
-    @NotNull
-    public String getName();
-
-    /**
-     * 获取世界的唯一UUID.
-     * <p>
-     * 原文：
-     * Gets the Unique ID of this world
-     *
-     * @return 世界的唯一UUID
-     */
-    @NotNull
-    public UUID getUID();
 
     /**
      * 获取这个世界的默认出生点{@link Location 位置}.
@@ -1035,7 +1048,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param location 要设置的出生点位置
      * @return 若成功设置返回true
      */
-    @NotNull
     public boolean setSpawnLocation(@NotNull Location location);
 
     /**
@@ -1128,6 +1140,15 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public void setFullTime(long time);
 
     /**
+     * Gets the full in-game time on this world since the world generation
+     *
+     * @return The current absolute time since the world generation
+     * @see #getTime() Returns a relative time of this world
+     * @see #getFullTime() Returns an absolute time of this world
+     */
+    public long getGameTime();
+
+    /**
      * 返回世界现在是否有雷暴.
      * <p>
      * 原文：
@@ -1209,6 +1230,16 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public int getThunderDuration();
 
     /**
+     * 设置这个世界打雷持续时间。
+     * <p>
+     * 原文：
+     * Set the thundering duration.
+     *
+     * @param duration 持续时间，单位为tick
+     */
+    public void setThunderDuration(int duration);
+
+    /**
      * 返回世界是否为晴天.
      *
      * {@link #isThundering() 雷}{@link #hasStorm() 雨}退散, 便是晴天.
@@ -1251,16 +1282,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return 持续时间, 单位为 tick
      */
     public int getClearWeatherDuration();
-
-    /**
-     * 设置这个世界打雷持续时间。
-     * <p>
-     * 原文：
-     * Set the thundering duration.
-     *
-     * @param duration 持续时间，单位为tick
-     */
-    public void setThunderDuration(int duration);
 
     /**
      * 在指定坐标生成指定威力的爆炸.
@@ -1376,27 +1397,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public boolean createExplosion(@NotNull Location loc, float power, boolean setFire, boolean breakBlocks, @Nullable Entity source);
 
     /**
-     * 获取世界的{@link Environment 环境}类型.
-     * <p>
-     * 原文：
-     * Gets the {@link Environment} type of this world
-     *
-     * @return 这个世界的环境类型
-     */
-    @NotNull
-    public Environment getEnvironment();
-
-    /**
-     * 获取世界的种子.
-     * <p>
-     * 原文：
-     * Gets the Seed for this world.
-     *
-     * @return 这个世界的种子
-     */
-    public long getSeed();
-
-    /**
      * 获取世界当前的PVP设置.
      * <p>
      * 原文：
@@ -1424,8 +1424,16 @@ public interface World extends PluginMessageRecipient, Metadatable {
      *
      * @return 这个世界相关的{@link ChunkGenerator 区块生成器}
      */
-    @NotNull
+    @Nullable
     public ChunkGenerator getGenerator();
+
+    /**
+     * Gets the biome provider for this world
+     *
+     * @return BiomeProvider associated with this world
+     */
+    @Nullable
+    public BiomeProvider getBiomeProvider();
 
     /**
      * 保存世界到磁盘.
@@ -1444,40 +1452,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
      */
     @NotNull
     public List<BlockPopulator> getPopulators();
-
-    /**
-     * 在指定的{@link Location 位置}根据给定的类生成一个实体.
-     * <p>
-     * 原文：
-     * Spawn an entity of a specific class at the given {@link Location}
-     *
-     * @param location 生成实体的{@link Location 位置}
-     * @param clazz 生成{@link Entity 实体}的类
-     * @param <T> 生成{@link Entity 实体}的类
-     * @return 一个生成的{@link Entity 实体}实例
-     * @throws IllegalArgumentException 如果参数为空或被要求生成的{@link Entity 实体}不能被生成则抛出错误
-     */
-    @NotNull
-    public <T extends Entity> T spawn(@NotNull Location location, @NotNull Class<T> clazz) throws IllegalArgumentException;
-
-    /**
-     * Spawn an entity of a specific class at the given {@link Location}, with
-     * the supplied function run before the entity is added to the world.
-     * <br>
-     * Note that when the function is run, the entity will not be actually in
-     * the world. Any operation involving such as teleporting the entity is undefined
-     * until after this function returns.
-     *
-     * @param location the {@link Location} to spawn the entity at
-     * @param clazz the class of the {@link Entity} to spawn
-     * @param function the function to be run before the entity is spawned.
-     * @param <T> the class of the {@link Entity} to spawn
-     * @return an instance of the spawned {@link Entity}
-     * @throws IllegalArgumentException if either parameter is null or the
-     *     {@link Entity} requested cannot be spawned
-     */
-    @NotNull
-    public <T extends Entity> T spawn(@NotNull Location location, @NotNull Class<T> clazz, @Nullable Consumer<T> function) throws IllegalArgumentException;
 
     /**
      * Spawn a {@link FallingBlock} entity at the given {@link Location} of
@@ -1532,7 +1506,7 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * material.isBlock()}. The Material may not be air.
      *
      * @param location 生成下落方块的{@link Location 位置}
-     * @param @param material 方块 {@link Material} 类型
+     * @param material 方块 {@link Material} 类型
      * @param data 方块数据
      * @return 生成的{@link FallingBlock 正在下落的方块}实例
      * @throws IllegalArgumentException 如果 {@link Location} 或 {@link
@@ -1661,21 +1635,9 @@ public interface World extends PluginMessageRecipient, Metadatable {
     Biome getBiome(int x, int z);
 
     /**
-     * Gets the biome for the given block coordinates.
-     *
-     * @param x X coordinate of the block
-     * @param y Y coordinate of the block
-     * @param z Z coordinate of the block
-     * @return Biome of the requested block
-     */
-    @NotNull
-    Biome getBiome(int x, int y, int z);
-
-    /**
-     * 设置指定方块坐标的生物群系
+     * 设置指定方块坐标的生物群系.
      * <p>
-     * 原文：
-     * Sets the biome for the given block coordinates
+     * 原文:Sets the biome for the given block coordinates
      *
      * @param x 方块的x坐标
      * @param z 方块的z坐标
@@ -1684,16 +1646,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
      */
     @Deprecated
     void setBiome(int x, int z, @NotNull Biome bio);
-
-    /**
-     * Sets the biome for the given block coordinates
-     *
-     * @param x X coordinate of the block
-     * @param y Y coordinate of the block
-     * @param z Z coordinate of the block
-     * @param bio new Biome type for this block
-     */
-    void setBiome(int x, int y, int z, @NotNull Biome bio);
 
     /**
      * 获取指定方块坐标的温度。
@@ -1768,18 +1720,86 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public double getHumidity(int x, int y, int z);
 
     /**
-     * 获取这个世界的最大高度。
-     * <p>
-     * 如果最大高度为100，则只有y=0到y=99才有方块。
-     * <p>
-     * 原文：
-     * Gets the maximum height of this world.
-     * <p>
-     * If the max height is 100, there are only blocks from y=0 to y=99.
+     * Gets the maximum height to which chorus fruits and nether portals can
+     * bring players within this dimension.
      *
-     * @return 世界的最大高度
+     * This excludes portals that were already built above the limit as they
+     * still connect normally. May not be greater than {@link #getMaxHeight()}.
+     *
+     * @return maximum logical height for chorus fruits and nether portals
      */
-    public int getMaxHeight();
+    public int getLogicalHeight();
+
+    /**
+     * Gets if this world is natural.
+     *
+     * When false, compasses spin randomly, and using a bed to set the respawn
+     * point or sleep, is disabled. When true, nether portals can spawn
+     * zombified piglins.
+     *
+     * @return true if world is natural
+     */
+    public boolean isNatural();
+
+    /**
+     * Gets if beds work in this world.
+     *
+     * A non-working bed will blow up when trying to sleep. {@link #isNatural()}
+     * defines if a bed can be used to set spawn point.
+     *
+     * @return true if beds work in this world
+     */
+    public boolean isBedWorks();
+
+    /**
+     * Gets if this world has skylight access.
+     *
+     * @return true if this world has skylight access
+     */
+    public boolean hasSkyLight();
+
+    /**
+     * Gets if this world has a ceiling.
+     *
+     * @return true if this world has a bedrock ceiling
+     */
+    public boolean hasCeiling();
+
+    /**
+     * Gets if this world allow to piglins to survive without shaking and
+     * transforming to zombified piglins.
+     *
+     * @return true if piglins will not transform to zombified piglins
+     */
+    public boolean isPiglinSafe();
+
+    /**
+     * Gets if this world allows players to charge and use respawn anchors.
+     *
+     * @return true if players can charge and use respawn anchors
+     */
+    public boolean isRespawnAnchorWorks();
+
+    /**
+     * Gets if players with the bad omen effect in this world will trigger a
+     * raid.
+     *
+     * @return true if raids will be triggered
+     */
+    public boolean hasRaids();
+
+    /**
+     * Gets if various water/lava mechanics will be triggered in this world, eg:
+     * <br>
+     * <ul>
+     * <li>Water is evaporated</li>
+     * <li>Sponges dry</li>
+     * <li>Lava spreads faster and further</li>
+     * </ul>
+     *
+     * @return true if this world has the above mechanics
+     */
+    public boolean isUltraWarm();
 
     /**
      * 获取世界的海平面。
@@ -2179,6 +2199,51 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public void setTicksPerWaterAmbientSpawns(int ticksPerAmbientSpawns);
 
     /**
+     * Gets the default ticks per water underground creature spawns value.
+     * <p>
+     * <b>Example Usage:</b>
+     * <ul>
+     * <li>A value of 1 will mean the server will attempt to spawn water underground creature
+     *     every tick.
+     * <li>A value of 400 will mean the server will attempt to spawn water underground creature
+     *     every 400th tick.
+     * <li>A value below 0 will be reset back to Minecraft's default.
+     * </ul>
+     * <p>
+     * <b>Note:</b> If set to 0, water underground creature spawning will be disabled.
+     * <p>
+     * Minecraft default: 1.
+     *
+     * @return the default ticks per water underground creature spawn value
+     */
+    public long getTicksPerWaterUndergroundCreatureSpawns();
+
+    /**
+     * Sets the world's ticks per water underground creature spawns value
+     * <p>
+     * This value determines how many ticks there are between attempts to
+     * spawn water underground creature.
+     * <p>
+     * <b>Example Usage:</b>
+     * <ul>
+     * <li>A value of 1 will mean the server will attempt to spawn water underground creature in
+     *     this world on every tick.
+     * <li>A value of 400 will mean the server will attempt to spawn water underground creature
+     *     in this world every 400th tick.
+     * <li>A value below 0 will be reset back to Minecraft's default.
+     * </ul>
+     * <p>
+     * <b>Note:</b>
+     * If set to 0, water underground creature spawning will be disabled for this world.
+     * <p>
+     * Minecraft default: 1.
+     *
+     * @param ticksPerWaterUndergroundCreatureSpawns the ticks per water underground creature spawns value you
+     *     want to set the world to
+     */
+    public void setTicksPerWaterUndergroundCreatureSpawns(int ticksPerWaterUndergroundCreatureSpawns);
+
+    /**
      * Gets the world's ticks per ambient mob spawns value
      * <p>
      * This value determines how many ticks there are between attempts to
@@ -2307,6 +2372,25 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @param limit 新的水生动物限制
      */
     void setWaterAnimalSpawnLimit(int limit);
+
+    /**
+     * Gets the limit for number of water underground creature that can spawn in a chunk in
+     * this world
+     *
+     * @return The water underground creature spawn limit
+     */
+    int getWaterUndergroundCreatureSpawnLimit();
+
+    /**
+     * Sets the limit for number of water underground creature that can spawn in a chunk in
+     * this world
+     * <p>
+     * <b>Note:</b> If set to a negative number the world will use the
+     * server-wide spawn limit instead.
+     *
+     * @param limit the new mob limit
+     */
+    void setWaterUndergroundCreatureSpawnLimit(int limit);
 
     /**
      * Gets user-specified limit for number of water ambient mobs that can spawn
@@ -2805,6 +2889,13 @@ public interface World extends PluginMessageRecipient, Metadatable {
      * @return the view distance used for this world
      */
     int getViewDistance();
+
+    /**
+     * Returns the simulation distance used for this world.
+     *
+     * @return the simulation distance used for this world
+     */
+    int getSimulationDistance();
     // Spigot end
 
     // Spigot start
@@ -2882,17 +2973,21 @@ public interface World extends PluginMessageRecipient, Metadatable {
     public enum Environment {
 
         /**
-         * 表示"normal"/"surface world"地图。
+         * 表示"normal"/"surface world"地图.
          */
         NORMAL(0),
         /**
-         * 表示一个基于"hell"地图的地狱。
+         * 表示一个基于"hell"地图的地狱.
          */
         NETHER(-1),
         /**
-         * 表示"end"地图。
+         * 表示"end"地图.
          */
-        THE_END(1);
+        THE_END(1),
+        /**
+         * 代表自定义维度.
+         */
+        CUSTOM(-999);
 
         private final int id;
         private static final Map<Integer, Environment> lookup = new HashMap<Integer, Environment>();

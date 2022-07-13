@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import org.bukkit.Server;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,10 +44,12 @@ public interface Plugin extends TabExecutor {
 
     /**
      * 获取这个插件的{@link FileConfiguration}实例, 它将读取config.yml中的内容.
+     * <p>
      * 如果这个插件中含有config.yml文件, 那么这个config.yml将作为默认的配置文件.
      * <p>
      * 原文:Gets a {@link FileConfiguration} for this plugin, read through
-     * "config.yml"</br>
+     * "config.yml"
+     * <p>
      * If there is a default config.yml embedded in this plugin, it will be
      * provided as a default for this Configuration.
      *
@@ -189,6 +192,18 @@ public interface Plugin extends TabExecutor {
      */
     @Nullable
     public ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, @Nullable String id);
+
+    /**
+     * Gets a {@link BiomeProvider} for use in a default world, as specified
+     * in the server configuration
+     *
+     * @param worldName Name of the world that this will be applied to
+     * @param id Unique ID, if any, that was specified to indicate which
+     *     biome provider was requested
+     * @return BiomeProvider for use in the default world generation
+     */
+    @Nullable
+    public BiomeProvider getDefaultBiomeProvider(@NotNull String worldName, @Nullable String id);
 
     /**
      * 返回与此服务器日志记录器关联的插件日志记录器.返回的日志记录器自动地用插件的名称标记所有日志消息.

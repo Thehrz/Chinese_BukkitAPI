@@ -36,7 +36,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable {
      * <p>
      * <b>重要: <i>物品</i>堆只被设计用于容纳物品.
      * 请不要使用本类来简要描述某种不可获得的物品 
-     * (可以用{@link Material#isItem()}检测, 不要用 ItemStack存储此方法返回false的物品).
+     * (可以用{@link Material#isItem()}检测, 不要用 ItemStack存储此方法返回false的物品). </b>
      *
      * 原文:Defaults stack size to 1, with no extra data.
      * <p>
@@ -55,7 +55,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable {
      * <p>
      * <b>重要: <i>物品</i>堆只被设计用于容纳物品.
      * 请不要使用本类来简要描述某种不可获得的物品 
-     * (可以用{@link Material#isItem()}检测, 不要用 ItemStack存储此方法返回false的物品).
+     * (可以用{@link Material#isItem()}检测, 不要用 ItemStack存储此方法返回false的物品).</b>
      * <p>
      * 原文:An item stack with no extra data.
      * <p>
@@ -78,17 +78,17 @@ public class ItemStack implements Cloneable, ConfigurationSerializable {
      * @param type 物品种类
      * @param amount 堆叠数
      * @param damage 损耗值
-     * @deprecated see {@link #setDurability(short)}
+     * @deprecated 另请参阅 {@link #setDurability(short)}
      */
     public ItemStack(@NotNull final Material type, final int amount, final short damage) {
         this(type, amount, damage, null);
     }
 
     /**
-     * @param type the type
-     * @param amount the amount in the stack
-     * @param damage the damage value of the item
-     * @param data the data value or null
+     * @param type 物品种类
+     * @param amount 堆叠数
+     * @param damage 损耗值
+     * @param data 数据值或null
      * @deprecated 该方法使用了意义不明确的data byte对象
      */
     @Deprecated
@@ -145,7 +145,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable {
      * <p>
      * <b>重要: <i>物品</i>堆只被设计用于容纳物品.
      * 请不要使用本类来简要描述某种不可获得的物品 
-     * (可以用{@link Material#isItem()}检测, 不要用 ItemStack存储此方法返回false的物品).
+     * (可以用{@link Material#isItem()}检测, 不要用 ItemStack存储此方法返回false的物品).</b>
      * <p>
      * 原文:Sets the type of this item
      * <p>
@@ -166,6 +166,8 @@ public class ItemStack implements Cloneable, ConfigurationSerializable {
         }
         if (type.isLegacy()) {
             createData((byte) 0);
+        } else {
+            this.data = null;
         }
     }
 
@@ -255,7 +257,9 @@ public class ItemStack implements Cloneable, ConfigurationSerializable {
      * 原文:Gets the durability of this item
      *
      * @return 物品耐久度
+     * @deprecated 另请参阅 {@link #setDurability(short)}
      */
+    @Deprecated
     public short getDurability() {
         ItemMeta meta = getItemMeta();
         return (meta == null) ? 0 : (short) ((Damageable) meta).getDamage();

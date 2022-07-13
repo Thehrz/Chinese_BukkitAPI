@@ -38,7 +38,6 @@ public interface MapCanvas {
      *
      * @param cursors 与画布相关联的游标集合
      */
-    @NotNull
     public void setCursors(@NotNull MapCursorCollection cursors);
 
     /**
@@ -80,7 +79,7 @@ public interface MapCanvas {
      * 原文:Draw an image to the map. The image will be clipped if necessary.
      *
      * @param x 图片的x坐标
-     * @param y 图片的x坐标
+     * @param y 图片的y坐标
      * @param image 要画的图片
      */
     public void drawImage(int x, int y, @NotNull Image image);

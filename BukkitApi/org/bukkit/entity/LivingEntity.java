@@ -3,6 +3,7 @@ package org.bukkit.entity;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -359,7 +360,9 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      * @param effect 添加的药水效果
      * @param force 是否移除冲突的效果
      * @return 效果是否添加
-     * @deprecated 由于现已支持多个同种类型的药水效果, 没必要强制添加
+     * @deprecated 由于现已支持多个同种类型的药水效果, 没必要强制添加.
+     * <p>译注:在某次版本更新后, Minecraft 自身支持了多个同种药水效果, 效果弱的会被隐藏;
+     * 但为兼容性考虑, 如确有覆盖效果需求的, 还是指定force为true
      */
     @Deprecated
     public boolean addPotionEffect(@NotNull PotionEffect effect, boolean force);
@@ -540,15 +543,6 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
     public boolean setLeashHolder(@Nullable Entity holder);
 
     /**
-     * 返回实体是否正在睡觉.
-     * <p>
-     * 原文:Returns whether this entity is slumbering.
-     *
-     * @return 实体睡眠状态
-     */
-    public boolean isSleeping();
-
-    /**
      * 检查实体是否正在滑翔，如正在使用鞘翅.
      * <p>
      * 原文：
@@ -587,6 +581,24 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      * @return True if this entity is currently riptiding.
      */
     public boolean isRiptiding();
+
+    /**
+     * 返回实体是否正在睡觉.
+     * <p>
+     * 原文:Returns whether this entity is slumbering.
+     *
+     * @return 实体睡眠状态
+     */
+    public boolean isSleeping();
+
+    /**
+     * 获取实体是否正在攀爬.
+     * <p>
+     * 原文:Gets if the entity is climbing.
+     *
+     * @return 实体攀爬状态
+     */
+    public boolean isClimbing();
 
     /**
      * 设置实体是否具有AI. 实体若无AI将完全无法自主移动.
